@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <alsa/asoundlib.h>
 
 #include "edge-impulse-sdk/classifier/ei_run_classifier.h"
@@ -40,7 +41,7 @@ int main() {
     snd_pcm_t *pcm_handle;
     snd_pcm_hw_params_t *params;
 
-    if (snd_pcm_open(&pcm_handle, "plughw:1,0", SND_PCM_STREAM_CAPTURE, 0) < 0) {
+    if (snd_pcm_open(&pcm_handle,"plughw:CARD=Audio,DEV=0",SND_PCM_STREAM_CAPTURE,0) < 0) {
         printf("ERROR: Cannot open audio device\n");
         return 1;
     }
@@ -77,11 +78,15 @@ int main() {
         int frames = snd_pcm_readi(pcm_handle,
                                    mic_buffer,
                                    FRAME_COUNT);
-
         if (frames < 0) {
             snd_pcm_prepare(pcm_handle);
             continue;
         }
+        if (frames != FRAME_COUNT) {
+          printf("Short read: %d frames\n", frames);
+          continue;
+        }
+        
 
         /* Run inference */
         ei_impulse_result_t result = {0};
@@ -95,14 +100,23 @@ int main() {
         }
 
         /* Print results */
-        printf("\nPredictions:\n");
-        for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
-            printf("  %s: %.5f\n",
-                   result.classification[i].label,
-                   result.classification[i].value);
-        }
+        const float GLASS_THRESHOLD = 0.7f;
+        bool glass_detected = false;
 
-        usleep(100000);  // throttle prints
+    for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+       if (strcmp(result.classification[i].label, "glass_break") == 0) {
+        if (result.classification[i].value >= GLASS_THRESHOLD) {
+            glass_detected = true;
+        }
+        break;
+      }
+     }
+
+    if (glass_detected) {
+    printf(">>> GLASS BREAK DETECTED <<<\n");
+    }
+
+    usleep(100000);  // throttle prints
     }
 
     snd_pcm_close(pcm_handle);
