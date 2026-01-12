@@ -7,7 +7,7 @@ NAME = app
 BUILD_PATH = ./build
 
 # Location of main.cpp (must use C++ compiler for main)
-CXXSOURCES = main.cpp
+CXXSOURCES = main1.cpp
 
 # Search path for header files (current directory)
 CFLAGS += \
@@ -34,7 +34,7 @@ CFLAGS += -DEI_BUILD_POSIX=1
 CXXFLAGS += -std=c++14				# Use C++14 standard
 
 # Linker flags
-LDFLAGS += -lm -lpthread  # Link to math.h
+LDFLAGS += -lm -lpthread -lasound # Link to math.h
 
 
 # Include C source code for required libraries
